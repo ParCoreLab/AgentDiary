@@ -1,89 +1,165 @@
-# biomni-profiling
+# AgentDiary
 
-Workload characterization of the CPU/GPU scheduling bubble in agentic AI,
-using Biomni (snap-stanford) as the benchmark workload and Biomni-R0 (32B)
-served locally on du04.
+**A four-layer profiler that measures the CPU/GPU "bubble" in agentic AI workloads** —
+where an LLM agent's wall-clock time actually goes, turn by turn, across GPU
+inference and CPU tool execution — and a set of experiments that turn that
+measurement into a causal, quantitative story about what actually bottlenecks
+agent serving at scale.
 
-## What is being measured
+The workload used throughout is [Biomni](https://github.com/snap-stanford/Biomni)
+(Stanford SNAP's biomedical research agent), driving a real 32B-parameter model
+(Biomni-R0) served locally via [SGLang](https://github.com/sgl-project/sglang)
+— not a toy benchmark, not simulated tool calls.
 
-A Biomni agent program is a LangGraph loop of two phases:
+## The problem
 
-- **generate** — the LLM writes a plan / code. Reasoning runs on Biomni-R0
-  via SGLang across the 4 A100s, so this phase is **GPU-busy**.
-- **execute** — the generated Python/R/Bash runs in a persistent REPL. For
-  CPU-bound bio tools this phase is **CPU-busy and GPU-idle** — the GPU bubble.
+An agent isn't one LLM call — it's a loop: the model reasons and picks an
+action (**generate**, GPU-busy), then a tool actually runs (**execute**,
+typically CPU-busy). Because a single program runs one phase at a time, each
+phase idles the *other* resource: the GPU sits idle during tool execution,
+the CPU sits idle during inference. That idle window is the **bubble**.
 
-The loop is `generate -> execute -> generate -> execute -> ...` until a final
-answer. This repo's tracer records the boundaries of those two phases plus
-hardware utilization, on one monotonic clock, so the bubble can be seen.
+Existing agent-serving schedulers (Autellix, Continuum, and similar) optimize
+GPU occupancy and treat everything off-GPU — a tool call, a network wait, a
+database read — as one opaque "the program is away" interval. That throws
+away exactly the signal this profiler is built to capture: **what kind of
+work is happening off-GPU, how much of it, and how does it respond to
+contention.**
 
-## Layout
+## Key findings
+
+**CPU contention causally bounds the tool-execution phase — not the GPU.**
+A controlled sweep (fixed workload, only available CPU cores varied via
+`taskset`, GPU serving pinned to its own cores so it's never starved) shows
+execute time scaling almost exactly as 1/cores once available cores drop
+below the workload's actual demand — while GPU serving metrics (TTFT, TPOT,
+KV-cache occupancy) stay flat throughout, ruling out a GPU-side explanation:
+
+| Cores available | Execute time vs. baseline |
+|---|---|
+| 120 / 72 / 40 (at or above demand) | flat, 1.0–1.15× |
+| 24 | 2.0× |
+| 12 | up to 5.3× (one task: exactly 2.00× when cores were halved 24→12) |
+
+**GPU-only scheduling can be blind to a saturated host.** At 100 concurrent
+agents against one shared server, CPU hit ~98% (157/160 logical cores) while
+GPU serving still had headroom (KV-cache 87%, request queue ≈0) — a scheduler
+watching only GPU-side signals would read "room for more tenants" exactly
+when the host is already the bottleneck. Fixed-work tool phases measurably
+lengthened 28–42% purely from this contention. Pushed to 200 agents, CPU
+saturated completely and the failure mode shifted to host memory — the
+kernel OOM-killer terminated the most memory-hungry agents, while GPU still
+hadn't hit its own wall.
+
+**Decode is memory-bandwidth-bound, not compute-bound.** During generation,
+GPU SM activity runs ~66% while SM *occupancy* stays ~6% — the SMs are
+active but stalled waiting on HBM bandwidth, not FLOPs. TPOT stays ~17–18ms/
+token, TTFT ~1–1.3s, largely invariant to context length.
+
+**Per-agent CPU load is light in cores but dominant in latency.** A single
+agent's tool phase typically saturates only 2–9 of 256 available cores (one
+hot core, everything else idle) — yet that phase is up to 87% of total
+wall-clock time for CPU-heavy tasks. This reconciles a real tension in how
+"CPU-bound" gets used: light in *utilization*, dominant in *time-on-the-
+critical-path* — consistent with industry reporting that tool processing can
+account for up to 90.6% of agentic request latency.
+
+**The bubble is workload-invariant across hardware.** The same task run on
+two different GPU generations (A100-40GB vs. H100-64GB) produced nearly
+identical bubble fractions (87.3% vs. 86.9%) — the bubble is a property of
+the *workload's* phase structure, not a hardware-specific artifact.
+
+## How it works
+
+Every trace joins four measurement layers on one shared clock
+(`time.perf_counter()`), so any row in any output file can be correlated
+against any other by timestamp:
+
+| Layer | Captures | How |
+|---|---|---|
+| **L1** — agent loop | generate/execute phase start & end | wraps the agent's LLM-call and tool-exec functions from the outside, by import path — the agent framework's own code is never modified |
+| **L2** — HTTP | per-call latency, prompt/completion tokens | extracted from the same wrapped call, no extra round-trip |
+| **L3** — serving engine | TTFT, TPOT, queue depth, KV-cache occupancy | scrapes the inference server's Prometheus `/metrics` endpoint |
+| **L4** — hardware | per-GPU SM activity/occupancy/DRAM/power, per-core CPU | DCGM (falls back to NVML if unavailable) + `psutil` |
+
+For multi-agent runs, L3/L4 use **one shared sampler per session**, not one
+per agent — an earlier per-agent-scraper design was found to flood the
+serving endpoint's metrics port and corrupt the very latency numbers it was
+trying to measure. Worth knowing if you extend this: sampling infrastructure
+that reads the system can itself become a confound at concurrency.
+
+## Repo layout
 
 ```
-biomni-profiling/
-├── README.md                 this file
-├── serve_biomni_r0.sh        launches the SGLang server (long-lived)
-├── trace_run.py              runs ONE agent program with hooks + hardware sampling
-└── traces/                   outputs, one timestamped subfolder per run
-    └── <UTC-timestamp>_run/
-        ├── events.jsonl      generate/execute phase boundaries
-        ├── hardware.csv      per-GPU + per-CPU samples (100ms default)
-        ├── summary.json      turns, per-phase durations, layer-1 bubble estimate
-        ├── meta.json         run config + wall-clock anchor
-        └── agent_output.txt  the agent's final answer (sanity check)
+profiling/          the tracer + analysis:
+  trace_run.py         runs one agent, produces the 4-layer trace
+  analyze_trace.py      per-trace metrics + figures
+  aggregate_traces.py    cross-trace rollup
+  plot_concurrent.py, plot_sustained.py    multi-agent figures
+
+scripts/            server launch + multi-agent orchestration
+  serve_biomni_r0.sh    starts the SGLang server
+  run_concurrent.py, run_sustained.py    N-agent drivers
+
+tasks/              task configs (prompt + resource-profile label per task)
+  _deprecated_fake/     early synthetic tasks superseded by real Biomni-tool tasks
+
+session_configs/    multi-agent experiment configs (which tasks, how many, stagger timing)
 ```
 
-Biomni itself is a pip package inside the `biomni-sglang` conda env — it is
-**not** edited. The tracer wraps its functions from the outside by import path.
-The 32B weights live in the HF cache at
-`/DATA/mansari26/huggingface_cache/hub/`.
+Running any of the above writes into `results/` (single-agent) or
+`results_multi/` (multi-agent) — created locally, not checked into the repo
+(trace data is large and fully regenerable from the code here).
 
-## Running a trace (two terminals on du04)
+## Running it yourself
 
-### Terminal 1 — start the model server (leave it running)
+This is written to run on any machine with enough combined GPU memory to
+serve a ~32B-parameter model — it isn't tied to any specific cluster. It was
+developed and validated on two: a 4×A100-40GB node and a 4×H100-64GB node
+(see the cross-hardware finding above); the setup below applies to either,
+or to comparable hardware of your own.
 
+**Requirements**
+- 4 GPUs with enough combined memory for a 32B model in bf16 (~63GB total,
+  so ≥16GB/GPU on 4 cards) — fewer/larger GPUs work too, adjust `--tp` in
+  the launch script to match your GPU count
+- Python 3.11, [SGLang](https://github.com/sgl-project/sglang) installed
+- Optional: [DCGM](https://developer.nvidia.com/dcgm) for the richer
+  hardware metrics (SM occupancy, DRAM activity); the tracer falls back to
+  NVML automatically if DCGM isn't set up
+
+**Setup**
+```bash
+conda create -n biomni-sglang python=3.11 -y
+conda activate biomni-sglang
+pip install sglang biomni psutil pynvml
+```
+
+**Before your first run**, `scripts/serve_biomni_r0.sh` hardcodes two paths
+that are specific to the machine it was developed on — open it and adjust:
+- `CUDA_HOME` — point this at your own CUDA toolkit install
+- `HF_HOME` — point this at wherever you want model weights cached
+
+**Launch the server** (long-lived, one terminal):
 ```bash
 conda activate biomni-sglang
-cd biomni-profiling
-bash serve_biomni_r0.sh
+bash scripts/serve_biomni_r0.sh
+# ready when it prints: "The server is fired up and ready to roll!"
 ```
 
-Wait for SGLang to report the server is ready (endpoint at
-`http://localhost:30000/v1`). This holds all 4 GPUs.
-
-### Terminal 2 — run trace #1
-
+**Run a trace** (separate terminal, server stays up):
 ```bash
 conda activate biomni-sglang
-cd biomni-profiling
-python trace_run.py
+python profiling/trace_run.py --task-config tasks/gillespie_microbiome.json
+python profiling/analyze_trace.py results/gillespie_microbiome/<timestamp>/
 ```
 
-This runs the default simple task (ADMET property prediction — uses RDKit
-in-process, no data lake) once, then writes the trace into `traces/`.
+Swap in any config under `tasks/` for a different workload, or write your
+own — a task config is just a prompt plus a resource-profile label.
 
-The server in Terminal 1 stays up; re-run `trace_run.py` for more traces.
+## Status
 
-## Dependencies for the tracer
-
-In the `biomni-sglang` env:
-
-```bash
-pip install pynvml psutil
-```
-
-`pynvml` (per-GPU utilization) and `psutil` (per-CPU). If `pynvml` is missing
-the tracer still records CPU and warns; GPU columns will be blank.
-
-## What trace #1 is for
-
-Trace #1 validates the machinery, not the science. Confirm:
-
-1. the server serves R0 under `--tp 4` and the agent connects;
-2. `events.jsonl` shows alternating generate/execute phases (the loop shape);
-3. both hooks fire — if the generate hook can't find the agent's LLM object,
-   the tracer says so and we fix the attribute name from the real `A1`.
-
-Once the structure looks right, trace #2 drives a CPU-bound tool (e.g. a
-microbiome / scRNA-seq task) so the CPU-busy phase and GPU bubble appear in
-`hardware.csv`, and the full Tier-1 profiler is built around what we observe.
+The measurement layer and the CPU-throttle causal result above are validated
+across single- and multi-agent runs on two hardware generations. What's
+*not* in this repo yet: a scheduler that acts on this signal — that's the
+next phase of the work, not a finished claim.
