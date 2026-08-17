@@ -1,0 +1,30 @@
+{
+  "session_name": "du04_4x_gillespie_microbiome_stag10",
+  "description": "du04 (A100-40GB): 4 'gillespie_microbiome' agents, Poisson arrivals mean 10s, shared-sampler (FIXED profiler).",
+  "agents": [
+    {
+      "agent_id": "agent_00_gillespie_microbiome",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 0.0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_01_gillespie_microbiome",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 18.61,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_02_gillespie_microbiome",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 32.79,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_03_gillespie_microbiome",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 38.25,
+      "numactl_node": null
+    }
+  ]
+}

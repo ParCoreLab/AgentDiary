@@ -1,0 +1,11 @@
+{
+  "task_id": "gillespie_microbiome",
+  "task_family": "microbiome",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Stochastic Gillespie simulation of 6-species gut microbiome over 25 independent runs (Biomni pure-Python event loop runs ~4.4s/sim, targeting ~110s execute).",
+  "prompt": "Perform stochastic simulation of microbial population dynamics for a 6-species gut bacterial community using the Gillespie algorithm. The six species represent Bacteroides, Firmicutes_A, Firmicutes_B, Lactobacillus, Bifidobacterium, and Ruminococcus with the following parameters — initial populations: [200, 150, 100, 60, 120, 100]; per capita growth rates: [0.7, 0.6, 0.9, 0.8, 0.65, 0.55]; per capita clearance rates: [0.25, 0.2, 0.35, 0.3, 0.22, 0.18]; carrying capacities: [1200, 1000, 700, 400, 800, 1000]. Call simulate_microbial_population_dynamics from biomni.tool.microbiology with num_simulations=25, max_time=80, time_points=200. After the function returns, compute and report for each species: (1) extinction probability across the 25 simulations, (2) mean time-to-extinction in simulations where extinction occurred (or 'did not go extinct' if extinction probability is 0), (3) mean and standard deviation of final population at t=80. Rank the six species from highest to lowest extinction risk and explain which ecological parameters most strongly predict extinction vulnerability.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1200,
+  "notes": "Calls biomni.tool.microbiology.simulate_microbial_population_dynamics. Measured empirically: Biomni Gillespie runs at ~4.4s per simulation (much slower than generic Python estimates — likely doing numpy array copies per event). At 25 simulations: expected execute ~110s. Previous attempts: 500 sims hung for 20+ min; 200 sims took 878s (14.7 min). No external data required. Lactobacillus (carrying capacity 400, lowest of all) has the highest expected extinction risk."
+}

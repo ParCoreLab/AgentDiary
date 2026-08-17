@@ -1,0 +1,11 @@
+{
+  "task_id": "betweenness_5k_network",
+  "task_family": "pathway",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Betweenness + closeness centrality on a 5000-node metabolic network — heavy CPU bubble via two full BFS sweeps, targets 55-70% GPU idle",
+  "prompt": "Analyze the centrality structure of a large synthetic metabolic reaction network. Do everything in one code block.\n\n1. Generate a synthetic scale-free metabolic network: import networkx as nx; G = nx.barabasi_albert_graph(5000, 4, seed=42). This produces ~20000 edges.\n2. Compute exact betweenness centrality: bc = nx.betweenness_centrality(G, normalized=True). This performs a BFS/SSSP from all 5000 nodes — expect 1.5-4 minutes.\n3. Compute closeness centrality: cc = nx.closeness_centrality(G). Another full BFS sweep across all nodes — adds another 1.5-4 minutes.\n4. Compute clustering coefficient for each node: clustering = nx.clustering(G).\n5. Identify the top 10 hub nodes (highest betweenness) and bottom 10 peripheral nodes (lowest betweenness).\n6. Test whether hub nodes (top 10% by betweenness) have significantly different clustering coefficients than peripheral nodes (bottom 50% by betweenness) using scipy.stats.mannwhitneyu.\n7. Print: (a) top-10 hub table: node_id, betweenness, closeness, clustering, degree; (b) Mann-Whitney U statistic and p-value; (c) mean betweenness of hub vs peripheral nodes.\n\nDo not generate any plots. Report only the hub table and test result.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1800,
+  "notes": "HEAVY bubble task. betweenness_centrality (Brandes O(VE)) + closeness_centrality (O(VE)) on 5000-node BA graph with ~20k edges: O(VE) ≈ 100M BFS steps each, ~100s each, combined ~200-250s of CPU. GPU completely idle. Target GPU bubble: 55-70%. Upgraded from betweenness_1500_network (which only gave 8.2s execute — networkx C backend is fast; needed 5k nodes to get meaningful CPU time). Results go to results/betweenness_5k_network/."
+}

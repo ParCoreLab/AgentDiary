@@ -1,0 +1,30 @@
+{
+  "session_name": "block_d_scaling_n4",
+  "description": "Block D scaling sweep — 4 mixed agents. Next step after block_d_scaling_2.json. Two CPU-heavy + two GPU-heavy, staggered arrivals. The shared server (TP=4) is expected to show KV cache pressure or TPOT degradation before CPU saturates.",
+  "agents": [
+    {
+      "agent_id": "agent_0_cpu",
+      "task_config": "tasks/random_forest_cv_large.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1_gpu",
+      "task_config": "tasks/deseq_synthetic.json",
+      "arrival_offset_s": 15,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_2_cpu",
+      "task_config": "tasks/betweenness_8k_network.json",
+      "arrival_offset_s": 30,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_3_gpu",
+      "task_config": "tasks/admet_ibuprofen.json",
+      "arrival_offset_s": 45,
+      "numactl_node": null
+    }
+  ]
+}

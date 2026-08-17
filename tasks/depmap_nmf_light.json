@@ -1,0 +1,20 @@
+{
+  "task_id": "depmap_nmf_light",
+  "task_family": "transcriptomics",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "LIGHT DepMap NMF subtyping: a SINGLE NMF fit at fixed rank k=20 via the real biomni tool (no rank-selection sweep). Pairs with depmap_nmf_heavy for a light-vs-heavy distribution comparison. execute ~60-90s (one tool-config NMF on ~19000-gene x 1684 matrix), multi-turn.",
+  "prompt": "You are given two real DepMap files on disk:\n  - Gene-expression matrix: data/biomni_data/data_lake/DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv  (rows = cancer cell lines indexed by ModelID, columns = protein-coding genes, values = log2(TPM+1), already non-negative).\n  - Cell-line metadata: data/biomni_data/data_lake/DepMap_Model.csv  (has 'ModelID' and 'OncotreeLineage' columns; OncotreeLineage is the tissue of origin).\n\nGoal: discover transcriptional tumor subtypes by non-negative matrix factorization (NMF) at a FIXED rank of 20, and test whether the subtypes recover tissue of origin. Keep your code simple and defensive; report concrete numbers at each step.\n\n1. Load the expression matrix (pandas, index_col=0) and the metadata. Report the expression matrix shape and the number of ModelIDs shared between the two files; keep only shared cell lines from here on.\n2. Drop genes with zero variance across cell lines (constant/unexpressed genes). Build matrix X with GENES AS ROWS and CELL LINES AS COLUMNS (transpose so it is genes x cell_lines) and clip any negatives to 0. Because the NMF tool reads its input from a FILE PATH, save X once to 'X_genes_by_cells.csv'. Report X's shape.\n3. Run perform_gene_expression_nmf_analysis (from biomni.tool.cancer_biology) ONCE with expression_data_path='X_genes_by_cells.csv', n_components=20, output_dir='nmf_results'. This tool RETURNS a text research log (print it) and WRITES files (it does NOT return the matrices): nmf_results/sample_weights.csv (rows = Metagene_1..Metagene_20, columns = cell lines), nmf_results/metagenes.csv (rows = genes, columns = Metagene_i), nmf_results/top_genes_per_metagene.csv. Read those files for the next steps.\n4. From nmf_results/sample_weights.csv, each cell line's dominant metagene is the row with the largest weight in that cell line's column, i.e. dominant = sample_weights.idxmax(axis=0) (one metagene label per cell line). From nmf_results/top_genes_per_metagene.csv, print the top 15 genes of the first 5 metagenes.\n5. Validate: build a table of (ModelID, dominant_metagene, OncotreeLineage) for the shared cell lines aligned on ModelID (ensure the two label arrays have identical length and order before comparing). Compute the adjusted Rand index with sklearn.metrics.adjusted_rand_score(lineage_labels, dominant_metagene_labels). For each metagene, find the single lineage that dominates its assigned cell lines and report the 3 metagenes with the highest single-lineage fraction.\n\nFinally report: the expression matrix shape, the number of shared cell lines, the genes-by-cell-lines matrix shape, the adjusted Rand index, and the 3 most lineage-specific metagenes with their dominant lineage and top genes.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1800,
+  "notes": "LIGHT counterpart of depmap_nmf_heavy for the 20x MN5 distribution sweep. ONLY difference vs heavy: 1 NMF tool fit at fixed k=20 instead of a 5-rank selection sweep + canonical fit (6 total). Same data + gene handling (drop zero-var, full ~19000 genes, X saved to file). execute ~60-90s single-k (validated ~91s earlier as depmap_nmf_subtypes single-k, ARI~0.0015 at k=20). Same GOTCHA: the tool RETURNS a log and WRITES sample_weights/metagenes/top_genes csv -> read them (orientation: sample_weights rows=metagenes, cols=cell lines). MEMORY: 497MB source CSV -> ~3-4GB/agent. Sweep with MAX_WALL_SECONDS>=900. Data at data/biomni_data/data_lake/ (pushed to MN5).",
+  "requires": [
+    "sklearn",
+    "pandas",
+    "numpy"
+  ],
+  "success_markers": [
+    "adjusted_rand_score|[Aa]djusted [Rr]and",
+    "sample_weights"
+  ]
+}

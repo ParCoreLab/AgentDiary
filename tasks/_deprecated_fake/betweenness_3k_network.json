@@ -1,0 +1,11 @@
+{
+  "task_id": "betweenness_3k_network",
+  "task_family": "pathway",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Exact betweenness centrality on a 3000-node PPI network — extreme CPU bubble, targets 80-88% GPU idle",
+  "prompt": "Characterize the hub structure of a large synthetic protein-protein interaction (PPI) network. Do everything in one code block.\n\n1. Generate a synthetic scale-free PPI network: import networkx as nx; G = nx.barabasi_albert_graph(3000, 5, seed=42). This produces ~15000 edges, modeling realistic PPI topology.\n2. Compute exact betweenness centrality for all nodes: centrality = nx.betweenness_centrality(G, normalized=True). This performs a BFS from every one of the 3000 nodes — a pure Python computation that will take 5-20 minutes. Do not abort.\n3. Identify the top 25 hub proteins (highest betweenness). Print a table: node_id, betweenness, degree.\n4. Compute degree centrality: dc = nx.degree_centrality(G).\n5. Compute the Pearson correlation between betweenness and degree across all 3000 nodes using scipy.stats.pearsonr.\n6. Identify all nodes with betweenness > 3× the mean (essential hubs). Print the count and their mean degree.\n7. Print: (a) top-25 hub table, (b) hub count and mean degree, (c) betweenness-vs-degree Pearson r and p-value.\n\nDo not generate any plots. Report only the requested statistics.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 3600,
+  "notes": "EXTREME bubble task. networkx.betweenness_centrality on 3000-node graph is O(VE) with pure-Python BFS from every node: ~45M BFS steps at Python loop speed, expected 5-20 minutes. GPU is completely idle. Target GPU bubble: 80-88%. Timeout 1 hour."
+}

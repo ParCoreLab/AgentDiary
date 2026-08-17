@@ -1,0 +1,30 @@
+{
+  "session_name": "block_c3_cpu_collision",
+  "description": "Block C3 — CPU/DDR collision: four CPU-heavy biologically-valid agents launched simultaneously (offset=0). Tasks replaced from fake ML tasks to real Biomni domain tools. All four have long CPU execute phases that will overlap, competing for DDR bandwidth and CPU cores. Expected result: execute times inflate vs single-agent baselines (DDR contention); cpu_mean spikes; gpu_bubble_frac drops for all (GPU filled by concurrent inference during initial generate phases). Key metrics: per-agent execute_total_s vs baseline, cpu_max, cpu_hot_cores during execute, TPOT across all agents.",
+  "agents": [
+    {
+      "agent_id": "agent_0_gsea",
+      "task_config": "tasks/gsea_permutation.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1_gillespie",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_2_gblup",
+      "task_config": "tasks/genomic_prediction_gblup.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_3_gwas",
+      "task_config": "tasks/gwas_finemapping_locus.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    }
+  ]
+}

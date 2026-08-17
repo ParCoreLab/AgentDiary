@@ -1,0 +1,18 @@
+{
+  "session_name": "block_d_scaling_n2",
+  "description": "Block D scaling sweep — 2 mixed agents. One step in the 1→2→4→(6/8) sweep. Mixed types (CPU-heavy + GPU-heavy) with staggered arrivals. Compare session_summary across all block_d_scaling_*.json runs to find where KV/TPOT saturates before CPU.",
+  "agents": [
+    {
+      "agent_id": "agent_0_cpu",
+      "task_config": "tasks/random_forest_cv_large.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1_gpu",
+      "task_config": "tasks/deseq_synthetic.json",
+      "arrival_offset_s": 30,
+      "numactl_node": null
+    }
+  ]
+}

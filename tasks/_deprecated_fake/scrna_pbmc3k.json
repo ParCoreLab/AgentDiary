@@ -1,0 +1,11 @@
+{
+  "task_id": "scrna_pbmc3k",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Full scRNA-seq analysis of the PBMC 3k dataset using scanpy.",
+  "prompt": "Perform a complete single-cell RNA-seq analysis of the PBMC 3k dataset using scanpy (already installed). Load the dataset with scanpy.datasets.pbmc3k(), run standard quality control (filter low-quality cells and lowly expressed genes, remove high-mitochondrial-content cells), normalize and log-transform the data, select highly variable genes, run PCA, build a neighbor graph, compute UMAP, perform Leiden clustering at resolution 0.5, and identify the top 5 marker genes per cluster using the Wilcoxon rank-sum test. Annotate each cluster with its most likely PBMC cell type based on canonical marker genes (e.g. CD3D/CD3E for T cells, MS4A1/CD79A for B cells, LYZ/CST3 for monocytes, GNLY/NKG7 for NK cells). Report the final cluster sizes and cell type annotations.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1200,
+  "notes": "Primary CPU-heavy trace. PCA (LAPACK), UMAP (pure Python umap-learn), Leiden clustering (leidenalg), and Wilcoxon tests are all CPU-bound with no GPU involvement. UMAP alone can take 60-180s. GPU should show clear 0% idle windows during all execute phases. PACKAGES: scanpy, igraph, leidenalg are now installed in biomni-sglang (installed during first attempt 2026-06-22). PBMC 3k downloads ~6MB on first load, then cached. Prompt revised to be API-agnostic (no specific argument names) to avoid version-mismatch debugging loops seen in first attempt."
+}

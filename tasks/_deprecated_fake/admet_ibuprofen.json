@@ -1,0 +1,11 @@
+{
+  "task_id": "admet_ibuprofen",
+  "task_family": "pharmacology",
+  "resource_profile_expected": "gpu_heavy",
+  "description": "Predict ADMET properties for ibuprofen using DeepPurpose MPNN models.",
+  "prompt": "Predict ADMET properties for this compound: CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 600,
+  "notes": "Baseline GPU-heavy trace. DeepPurpose MPNN runs on GPU (PyTorch/CUDA), so execute phases are classified as gpu_tool, not cpu_tool. Execute windows show ~20% GPU util rather than 0%. This task demonstrates the ADMET pipeline but is NOT suitable for measuring the GPU bubble — use cpu_heavy tasks for that."
+}

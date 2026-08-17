@@ -1,0 +1,12 @@
+{
+  "session_name": "block_a2_single_gpu",
+  "description": "Block A2 baseline: one GPU-heavy (generate-dominated) agent. Establishes single-tenant TTFT/TPOT/KV baseline for comparison against multi-agent GPU collision runs. deseq_synthetic is generate-dominated (3.8% bubble, 7 turns, fast execute).",
+  "agents": [
+    {
+      "agent_id": "agent_0",
+      "task_config": "tasks/deseq_synthetic.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    }
+  ]
+}

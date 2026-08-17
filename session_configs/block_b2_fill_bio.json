@@ -1,0 +1,18 @@
+{
+  "session_name": "block_b2_fill_bio",
+  "description": "Block B2 — fill experiment with biologically-valid tasks: one CPU-heavy agent (gsea_permutation, 314s execute, 87.3% baseline bubble) + one mixed agent (gillespie_microbiome, 111s execute, 44% baseline bubble). Agent 1 staggered by 60s so its generate phases overlap gsea's long CPU execute window. Gillespie replaces deseq from B1: it is fixed-compute (25 simulations, ~111s deterministic execute) so completion token variance does not affect execute duration. Expected: gsea bubble drops further than B1 (80.5%); gillespie TPOT stays near baseline (~17.9ms); fill_fraction high; gpu_collision_s low because gillespie execute doesn't overlap gsea execute (gsea finishes first).",
+  "agents": [
+    {
+      "agent_id": "agent_0_gsea",
+      "task_config": "tasks/gsea_permutation.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1_gillespie",
+      "task_config": "tasks/gillespie_microbiome.json",
+      "arrival_offset_s": 60,
+      "numactl_node": null
+    }
+  ]
+}

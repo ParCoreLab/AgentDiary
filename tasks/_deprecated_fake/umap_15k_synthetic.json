@@ -1,0 +1,11 @@
+{
+  "task_id": "umap_15k_synthetic",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "UMAP on 15,000 synthetic scRNA-seq cells — medium-heavy CPU bubble, targets 65-75% GPU idle",
+  "prompt": "Perform UMAP dimensionality reduction on a synthetic single-cell RNA-seq dataset. Do everything in one code block.\n\n1. Generate a count matrix: 15000 cells × 3000 genes. numpy.random.seed(42). Draw counts from numpy.random.negative_binomial(n=5, p=0.5, size=(15000, 3000)). Multiply each gene column by numpy.random.lognormal(mean=1.0, sigma=1.5, size=3000).\n2. Normalize each cell to 10000 total counts, then apply numpy.log1p.\n3. Select the top 500 genes by variance.\n4. Run PCA to 30 components: sklearn.decomposition.PCA(n_components=30, random_state=42).\n5. Run UMAP: import umap; reducer = umap.UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42); embedding = reducer.fit_transform(pca_result). This will take 5-15 minutes.\n6. Run KMeans with 8 clusters on the embedding: sklearn.cluster.KMeans(n_clusters=8, random_state=42, n_init=10).\n7. Compute silhouette score on 2000-sample subset: sklearn.metrics.silhouette_score(embedding, labels, sample_size=2000, random_state=42).\n8. Print cluster sizes and the silhouette score.\n\nDo not generate any plots. Report only the cluster sizes table and silhouette score.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 2400,
+  "notes": "MEDIUM-HEAVY bubble task. UMAP on 15k × 30 PCA: 5-15 minutes (pynndescent KNN + numba-accelerated graph layout, CPU only). GPU completely idle. Target GPU bubble: 65-75%. Midpoint between umap_large_synthetic (30k) and a small run."
+}

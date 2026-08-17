@@ -1,0 +1,11 @@
+{
+  "task_id": "tsne_5k_synthetic",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "t-SNE on 5,000 synthetic scRNA-seq cells — moderate CPU bubble, targets 50-65% GPU idle",
+  "prompt": "Perform t-SNE dimensionality reduction and cell type analysis on a synthetic single-cell dataset. Do everything in one code block.\n\n1. Generate a count matrix: 5000 cells × 2000 genes. numpy.random.seed(42). Draw counts from numpy.random.negative_binomial(n=5, p=0.5, size=(5000, 2000)). Multiply each gene column by numpy.random.lognormal(mean=1.0, sigma=1.5, size=2000).\n2. Normalize each cell to 10000 total counts, then apply numpy.log1p.\n3. Select top 300 highest-variance genes.\n4. Run PCA to 50 components: sklearn.decomposition.PCA(n_components=50, random_state=42).\n5. Run t-SNE with high iteration count: sklearn.manifold.TSNE(n_components=2, perplexity=30, n_iter=2000, method='barnes_hut', random_state=42, verbose=1). Using n_iter=2000 extends computation beyond the default 1000. Expect 2-5 minutes.\n6. Run KMeans with 6 clusters on the 2D embedding.\n7. Compute silhouette score on the full 5000 cells (feasible at this size): sklearn.metrics.silhouette_score(embedding, labels).\n8. Print cluster sizes and silhouette score.\n\nDo not generate any plots. Report only the cluster sizes table and silhouette score.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1200,
+  "notes": "MODERATE bubble task. t-SNE with n_iter=2000 (doubled from default) on 5k cells: 2-5 minutes. GPU idle throughout. Target GPU bubble: 50-65%. The doubled iteration count compensates for the smaller n to still create a meaningful bubble. Also computes silhouette (feasible at 5k without sampling)."
+}

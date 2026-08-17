@@ -1,0 +1,11 @@
+{
+  "task_id": "deseq_synthetic",
+  "task_family": "transcriptomics",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Differential gene expression analysis on a fully synthetic RNA-seq dataset (no downloads required).",
+  "prompt": "Write and execute Python code (in a single execute block, no explanation before the code) to do the following:\n\nimport numpy as np\nfrom scipy import stats\nfrom statsmodels.stats.multitest import multipletests\n\nnp.random.seed(42)\nn_genes, n_ctrl, n_treat = 2000, 30, 30\ngene_means = np.exp(np.random.uniform(np.log(5), np.log(500), n_genes))\ndispersion = 0.1\nde_genes = np.random.choice(n_genes, 200, replace=False)\n\ndef nb_counts(means, n_samples, fold=1.0):\n    p = 1.0 / (1.0 + means * dispersion * fold)\n    r = 1.0 / dispersion\n    return np.column_stack([np.random.negative_binomial(r, p_i, n_samples) for p_i in p]).T\n\ncounts_ctrl  = nb_counts(gene_means, n_ctrl)\ncounts_treat = nb_counts(gene_means, n_treat, fold=np.where(np.isin(np.arange(n_genes), de_genes), 2.0, 1.0))\n\nlibsize_ctrl  = counts_ctrl.sum(axis=0)\nlibsize_treat = counts_treat.sum(axis=0)\ncpm_ctrl  = counts_ctrl  / libsize_ctrl  * 1e6\ncpm_treat = counts_treat / libsize_treat * 1e6\n\npvals = np.array([stats.ranksums(cpm_ctrl[g], cpm_treat[g]).pvalue for g in range(n_genes)])\n_, fdr, _, _ = multipletests(pvals, method='fdr_bh')\nlfc = np.log2((cpm_treat.mean(axis=1) + 1) / (cpm_ctrl.mean(axis=1) + 1))\n\ntop20_idx = np.argsort(fdr)[:20]\ntrue_pos  = sum(1 for i in top20_idx if i in de_genes)\nprint(f'top20_fdr_min={fdr[top20_idx[0]]:.2e} top20_true_positives={true_pos}/20 total_sig={int((fdr<0.05).sum())}');",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 900,
+  "notes": "Fallback CPU-heavy trace. Requires no external data downloads — all data is generated in-process with numpy. Statistical tests across 2000 genes are CPU-bound (scipy.stats). Use this if scrna_pbmc3k fails due to network restrictions or missing packages."
+}

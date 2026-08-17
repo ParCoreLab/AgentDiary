@@ -1,0 +1,11 @@
+{
+  "task_id": "tsne_multiscale_8k",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "t-SNE at 3 perplexity settings on 8000 cells to select optimal embedding — heavy CPU bubble via 3 sequential runs, targets 72-82% GPU idle",
+  "prompt": "Determine the optimal t-SNE perplexity for a synthetic single-cell dataset by running t-SNE at three scales. Do everything in one code block.\n\n1. Generate a count matrix: 8000 cells × 2000 genes. numpy.random.seed(42). Draw counts from numpy.random.negative_binomial(n=5, p=0.5, size=(8000, 2000)). Multiply each gene column by numpy.random.lognormal(mean=1.0, sigma=1.5, size=2000).\n2. Normalize each cell to 10000 total counts, then apply numpy.log1p.\n3. Select top 300 highest-variance genes.\n4. Run PCA to 50 components: sklearn.decomposition.PCA(n_components=50, random_state=42).\n5. Run t-SNE THREE TIMES at different perplexity settings (all with n_iter=1000, method='barnes_hut', random_state=42):\n   - Run A: sklearn.manifold.TSNE(perplexity=10, ...)\n   - Run B: sklearn.manifold.TSNE(perplexity=30, ...)\n   - Run C: sklearn.manifold.TSNE(perplexity=50, ...)\n   Each run takes 2-5 minutes. Total: 6-15 minutes.\n6. For each of the three embeddings, run KMeans with 7 clusters and compute silhouette score: sklearn.metrics.silhouette_score(embedding, labels).\n7. Identify which perplexity gives the highest silhouette score (best-separated clusters).\n8. Print: (a) per-run cluster sizes table for each perplexity, (b) silhouette score for each perplexity, (c) recommended perplexity.\n\nDo not generate any plots. Report only the cluster tables and silhouette scores.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 2700,
+  "notes": "HEAVY bubble task. Three sequential t-SNE runs on 8k × 50 PCA, each n_iter=1000 barnes_hut: 6-15 minutes total. GPU is completely idle across all three runs. Target GPU bubble: 72-82%. Scientific justification: perplexity selection is a standard hyperparameter sweep in single-cell analysis. Also demonstrates multi-execute bubble stacking within one task."
+}

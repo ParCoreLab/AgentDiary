@@ -1,0 +1,13 @@
+{
+  "task_id": "scrna_pbmc3k",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "LIGHT MULTI-TURN Biomni task: a full scanpy scRNA-seq pipeline on PBMC 3k (QC -> normalize -> HVG -> PCA -> neighbors -> UMAP -> Leiden clustering -> Wilcoxon marker genes -> cell-type annotation). Many small CPU tool phases (historically 19-32 turns) = the 'light multi-turn' resource type for the benchmark, contrasting the single-big-phase CPU tasks.",
+  "prompt": "Perform a complete single-cell RNA-seq analysis of the PBMC 3k dataset using scanpy (already installed). Load the dataset with scanpy.datasets.pbmc3k(), run standard quality control (filter low-quality cells and lowly expressed genes, remove high-mitochondrial-content cells), normalize and log-transform the data, select highly variable genes, run PCA, build a neighbor graph, compute UMAP, perform Leiden clustering at resolution 0.5, and identify the top 5 marker genes per cluster using the Wilcoxon rank-sum test. Annotate each cluster with its most likely PBMC cell type based on canonical marker genes (e.g. CD3D/CD3E for T cells, MS4A1/CD79A for B cells, LYZ/CST3 for monocytes, GNLY/NKG7 for NK cells). Report the final number of cells after QC, the number of clusters, each cluster's size, and its cell type annotation.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1200,
+  "requires": ["scanpy", "leidenalg", "igraph"],
+  "success_markers": ["[0-9]+\\s*clusters?", "[0-9]{3,}\\s*cells"],
+  "notes": "Re-validated into the trusted set 2026-08-17 (was in tasks/_deprecated_fake/). LIGHT multi-turn CPU type for the benchmark. Deps scanpy/leidenalg/igraph installed in biomni-sglang (2026-06-22). DATA: scanpy.datasets.pbmc3k() DOWNLOADS ~6MB on first load then caches -> works on du04 (has internet); on MN5 (NO internet on compute/login nodes) the pbmc3k cache must be pre-staged before running. success_markers are a FIRST GUESS (numeric cluster + cell counts = results, not prompt phrases) -- expect to tune after the first run, exactly like bindingdb needed 2 iterations. Historically 19-32 turns, ~8.8% bubble, mixed cpu/gpu/trivial phases (some scanpy ops touched the GPU)."
+}

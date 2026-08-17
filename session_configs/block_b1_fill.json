@@ -1,0 +1,18 @@
+{
+  "session_name": "block_b1_fill",
+  "description": "Block B1 — the fill experiment: one CPU-heavy agent (gsea_permutation, 314s execute) + one GPU-heavy agent (deseq_synthetic, 3.8% bubble). Agent 1 is staggered by 60s so it starts while agent 0 is deep in its long execute phase. Expected result: agent 0's GPU bubble fraction drops (GPU filled by agent 1's inference); agent 1's TTFT/TPOT stay near single-tenant baseline (no GPU collision). fill_fraction in session_summary should be high; gpu_collision_s low.",
+  "agents": [
+    {
+      "agent_id": "agent_0_cpu_heavy",
+      "task_config": "tasks/gsea_permutation.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1_gpu_heavy",
+      "task_config": "tasks/deseq_synthetic.json",
+      "arrival_offset_s": 60,
+      "numactl_node": null
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "task_id": "random_forest_cv_large",
+  "task_family": "transcriptomics",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Random forest with 500 trees + 10-fold CV on 5000 × 200 gene expression data, single-threaded — moderate CPU bubble, targets 55-65% GPU idle",
+  "prompt": "Build and cross-validate a random forest classifier for cancer subtype prediction from gene expression. Do everything in one code block.\n\n1. Generate synthetic bulk RNA-seq data: 5000 samples × 200 genes, 5 cancer subtypes (1000 samples each). numpy.random.seed(42). For subtype k in [0,1,2,3,4]: draw numpy.random.lognormal(mean=k*0.4, sigma=1.2, size=(1000, 200)) and add per-sample noise (multiply rows by numpy.random.lognormal(0, 0.3, 1000)[:, None]). Stack to get X (5000 × 200) and labels y (5000,).\n2. Standardize features: sklearn.preprocessing.StandardScaler().fit_transform(X).\n3. Run 10-fold stratified cross-validation using a SINGLE-THREADED random forest: from sklearn.model_selection import StratifiedKFold, cross_val_score; from sklearn.ensemble import RandomForestClassifier; clf = RandomForestClassifier(n_estimators=500, max_depth=None, n_jobs=1, random_state=42). Run cross_val_score(clf, X_scaled, y, cv=StratifiedKFold(n_splits=10, shuffle=True, random_state=42), scoring='accuracy', n_jobs=1). Using n_jobs=1 is intentional — single-threaded to ensure long CPU execution. This will take 3-8 minutes.\n4. Fit the final model on all data and extract feature importances. Identify the top 20 most important genes.\n5. Print: (a) mean CV accuracy ± std, (b) per-fold accuracy, (c) top-20 gene importance table (gene_index, importance_score).\n\nDo not generate any plots. Report only the CV scores and feature importance table.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1800,
+  "notes": "MODERATE bubble task. RandomForest with n_estimators=500, n_jobs=1 (single-threaded), 10-fold CV on 5k samples: each fold trains 500 trees on 4500 samples × 200 features → ~3-8 minutes total. GPU completely idle. Target GPU bubble: 55-65%. The n_jobs=1 constraint is critical — without it sklearn parallelizes across cores and runs much faster."
+}

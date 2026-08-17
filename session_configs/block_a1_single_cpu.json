@@ -1,0 +1,12 @@
+{
+  "session_name": "block_a1_single_cpu",
+  "description": "Block A1 baseline: one CPU-heavy agent under the new per-process CPU sampler. Establishes the server idle floor and per-agent bubble baseline for comparison against multi-agent runs. Use gsea_permutation (87.3% bubble, 314s execute) for maximum signal.",
+  "agents": [
+    {
+      "agent_id": "agent_0",
+      "task_config": "tasks/gsea_permutation.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    }
+  ]
+}

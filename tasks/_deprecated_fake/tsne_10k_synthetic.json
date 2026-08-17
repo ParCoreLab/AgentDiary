@@ -1,0 +1,11 @@
+{
+  "task_id": "tsne_10k_synthetic",
+  "task_family": "single_cell",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "t-SNE on 10,000 synthetic scRNA-seq cells — heavy CPU bubble, targets 70-80% GPU idle",
+  "prompt": "Perform t-SNE dimensionality reduction on a synthetic single-cell RNA-seq dataset. Do everything in one code block.\n\n1. Generate a count matrix: 10000 cells × 2000 genes. numpy.random.seed(42). Draw counts from numpy.random.negative_binomial(n=5, p=0.5, size=(10000, 2000)). Multiply each gene column by numpy.random.lognormal(mean=1.0, sigma=1.5, size=2000).\n2. Normalize each cell to 10000 total counts, then apply numpy.log1p.\n3. Select the top 300 highest-variance genes.\n4. Run PCA to 50 components: sklearn.decomposition.PCA(n_components=50, random_state=42).\n5. Run t-SNE: sklearn.manifold.TSNE(n_components=2, perplexity=30, n_iter=1000, method='barnes_hut', random_state=42, verbose=1). This will take 3-8 minutes.\n6. Run KMeans with 8 clusters on the 2D embedding: sklearn.cluster.KMeans(n_clusters=8, random_state=42, n_init=10).\n7. Print cluster sizes sorted by size (cluster_id, n_cells, pct_of_total).\n\nDo not generate any plots. Report only the cluster sizes table.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 1800,
+  "notes": "HEAVY bubble task. sklearn TSNE barnes_hut on 10k × 50 PCA: O(n log n) × 1000 iters, takes 3-8 minutes. GPU is completely idle. Target GPU bubble: 70-80%. This is the 'medium heavy' reference point for t-SNE scaling."
+}

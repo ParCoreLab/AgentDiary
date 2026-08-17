@@ -1,0 +1,18 @@
+{
+  "session_name": "block_c1_gpu_collision",
+  "description": "Block C1 — GPU collision: two generate-dominated agents launched simultaneously. Both fire their retrieval calls at the same instant (~t=5s), then run multiple generate phases overlapping on the shared TP=4 server. Expected result: TPOT roughly doubles vs single-tenant (~17.8ms → ~35ms); queue_wait_ms rises off its ~0.7ms floor. This demonstrates Continuum's scheduling bubble appearing under concurrent GPU demand.",
+  "agents": [
+    {
+      "agent_id": "agent_0",
+      "task_config": "tasks/deseq_synthetic.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    },
+    {
+      "agent_id": "agent_1",
+      "task_config": "tasks/admet_ibuprofen.json",
+      "arrival_offset_s": 0,
+      "numactl_node": null
+    }
+  ]
+}

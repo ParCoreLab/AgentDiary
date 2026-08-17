@@ -1,0 +1,47 @@
+# Large trace/results outputs -- not meant for git, many GB total
+results/
+results_multi/
+results_mn5/
+results_mn5_multi/
+results_bench/
+traces/
+
+# Data lake / large loose data files
+data/
+save_folder/
+processed_expression_data.csv
+population_trajectories.csv
+results_2026-06-23.zip
+
+# Internal-only docs (candid working notes, not for external readers)
+CLAUDE.md
+multi_agent_design_handoff.md
+
+# Copyrighted third-party papers / sensitive infra notes
+papers/
+machine_setup/
+
+# Local tooling / logs, not project content
+.claude/
+install_biomni.log
+
+# Kept out of this repo entirely (per request)
+documentation/
+samsung/
+
+# LaTeX build artifacts (keep the .tex source and final .pdf)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS cruft
+.DS_Store

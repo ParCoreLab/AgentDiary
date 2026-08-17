@@ -1,0 +1,11 @@
+{
+  "task_id": "betweenness_8k_network",
+  "task_family": "pathway",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "Exact betweenness centrality on an 8000-node PPI network (m=5 dense graph) — extreme CPU bubble via single massive BFS sweep, targets 65-78% GPU idle",
+  "prompt": "Perform a full centrality analysis of a large synthetic protein-protein interaction network. Do everything in one code block.\n\n1. Generate a synthetic dense scale-free PPI network: import networkx as nx; G = nx.barabasi_albert_graph(8000, 5, seed=42). This produces ~40000 edges, modeling a realistic dense PPI topology.\n2. Compute exact betweenness centrality for all nodes: bc = nx.betweenness_centrality(G, normalized=True). This performs BFS/SSSP from all 8000 nodes — expect 3-8 minutes. Do not abort.\n3. Compute degree centrality: dc = nx.degree_centrality(G).\n4. Compute eigenvector centrality: ec = nx.eigenvector_centrality(G, max_iter=1000, tol=1e-4).\n5. Identify the top 15 hub proteins ranked by betweenness. For each: print node_id, betweenness, degree_centrality, eigenvector_centrality, degree.\n6. Compute Pearson correlations among betweenness, degree_centrality, and eigenvector_centrality (3 pairs) using scipy.stats.pearsonr.\n7. Identify essential hubs: nodes with betweenness > 3× the network mean. Print their count and mean degree.\n8. Print: (a) top-15 hub table, (b) three centrality correlations, (c) essential hub count and mean degree.\n\nDo not generate any plots. Report only the hub table, correlations, and hub summary.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 3600,
+  "notes": "EXTREME bubble task. betweenness_centrality (Brandes O(VE)) on 8000-node BA graph with m=5 (~40k edges): O(VE) ≈ 320M BFS steps → ~250-400s of CPU. GPU completely idle. Target GPU bubble: 65-78%. Upgraded from betweenness_2k_network (which only gave 14.9s execute — networkx C backend much faster than pure-Python BFS assumption; needed 8k nodes + dense m=5 graph). Results go to results/betweenness_8k_network/."
+}

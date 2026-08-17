@@ -1,0 +1,11 @@
+{
+  "task_id": "glv_community_dynamics",
+  "task_family": "microbiome",
+  "resource_profile_expected": "cpu_heavy",
+  "description": "5-replicate 150-species gut microbiome gLV ODE simulation (scipy odeint) targeting 60-180s execute.",
+  "prompt": "Simulate the population dynamics of a synthetic human gut microbiome community using the Generalized Lotka-Volterra (gLV) model. Run 5 independent replicates with numpy seeds 42, 43, 44, 45, 46. For each replicate: set all initial abundances to 0.1 for 150 species; draw intrinsic growth rates from N(0.5, 0.1) and clip to be strictly positive; build a 150×150 interaction matrix where all diagonal entries are -0.1 (logistic self-limitation) and off-diagonal entries are drawn from N(0, 0.02). Simulate from t=0 to t=500 using 5000 evenly spaced time points. Call simulate_generalized_lotka_volterra_dynamics from biomni.tool.microbiology for each replicate. After all 5 replicates complete, compute and report across replicates: (1) mean number of surviving species at t=500 (abundance > 1e-6), (2) mean Shannon diversity index H = -sum(p_i * log(p_i + 1e-12)) using relative abundances of surviving species, (3) mean and standard deviation of the three most dominant species final abundances across replicates. Print ONLY the final summary table with one row per replicate.",
+  "expected_data_lake_files": [],
+  "use_tool_retriever": true,
+  "timeout_seconds": 900,
+  "notes": "Calls biomni.tool.microbiology.simulate_generalized_lotka_volterra_dynamics. Previous config (50 species, t=1000, 10000 pts) ran in 0.5s — scipy odeint is compiled C and trivially fast for small systems. Fix: 150 species (150×150 dense Jacobian ≈ 9x harder per step) × 5 replicates × t=500 (5000 pts). Expected execute: 60-180s total. Smaller off-diagonal N(0,0.02) vs previous N(0,0.05) reduces chaos/stiffness but 150-species Jacobian dominates. The function writes glv_simulation_results.csv per call. No external data required."
+}
